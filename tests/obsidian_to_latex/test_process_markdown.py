@@ -560,7 +560,7 @@ def test_embed_markdown(test_name, input_text, open_reads, expected):
     assert result == expected
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def get_mock_open(file_contents: list[str]):
     reads = 0
 

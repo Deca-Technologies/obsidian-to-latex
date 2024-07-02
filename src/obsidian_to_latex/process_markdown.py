@@ -42,7 +42,7 @@ class State:
 STATE: State = State.new()
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def obsidian_to_tex(input_text: str) -> str:
     lines = input_text.splitlines()
     lines = [_line_to_tex(i + 1, line) for i, line in enumerate(lines)]
@@ -52,7 +52,7 @@ def obsidian_to_tex(input_text: str) -> str:
     return text
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def _line_to_tex(
     lineno: int,
     line: str,
@@ -66,7 +66,7 @@ def _line_to_tex(
         raise
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def line_to_tex(
     lineno: int,
     line: str,
@@ -97,7 +97,7 @@ def line_to_tex(
     return line
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def line_to_section(line: str) -> str:
     assert line.startswith("#"), line
     section_lookup = {
@@ -118,12 +118,12 @@ def line_to_section(line: str) -> str:
     return f"\\{section_text}{{{line}}}"
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_embedded(line: str) -> bool:
     return line.startswith("![[") and line.endswith("]]")
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def embed_file(line: str) -> str:
     if is_markdown(line):
         return embed_markdown(line)
@@ -132,14 +132,14 @@ def embed_file(line: str) -> str:
     raise Exception(f"Unable to embed {line}")  # pragma: no cover
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_markdown(line: str) -> bool:
     m = re.match(r"!\[\[(.*)\]\]", line)
     file_name = m.group(1)
     return Path(file_name).suffix == ""
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def embed_markdown(embed_line: str) -> str:
     m = re.match(r"!\[\[(.*)\]\]", embed_line)
     file_name = m.group(1)
@@ -167,7 +167,7 @@ def embed_markdown(embed_line: str) -> str:
     return file_label(file) + result
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_image(line: str) -> bool:
     m = re.match(r"!\[\[([\s_a-zA-Z0-9.]*)(\|)?([0-9x]+)?\]\]", line)
     if not m:
@@ -176,7 +176,7 @@ def is_image(line: str) -> bool:
     return Path(file_name).suffix.lower() in [".png", ".bmp"]
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def embed_image(line: str) -> str:
     assert is_image(line), line
     m = re.match(
@@ -188,7 +188,7 @@ def embed_image(line: str) -> str:
     return include_image(obsidian_path.find_file(file_name), width, height)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def include_image(
     image_path: Path, width: Optional[int], height: Optional[int]
 ) -> str:
@@ -204,12 +204,12 @@ def include_image(
     )
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_code_block_toggle(line: str) -> bool:
     return re.match(r"\s*```", line) is not None
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def toggle_code_block(
     lineno: int,
     line: str,
@@ -252,7 +252,7 @@ def toggle_code_block(
     return "\n".join(lines)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def process_mermaid_diagram():  # pragma: no cover
     mmd_file: Path = (
         STATE.temp_dir / f"{STATE.file[-1].stem}_{STATE.mermaid_block}.mmd"
@@ -264,27 +264,27 @@ def process_mermaid_diagram():  # pragma: no cover
     subprocess.run(cmd, shell=True, check=True)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def sanitize_special_characters(line: str) -> str:
     return re.sub(r"([&$_#%{}])(?!.*`)", r"\\\1", line)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_end_of_list(line: str) -> bool:
     return STATE.list_depth and not is_list(line)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_list(line: str) -> bool:
     return is_numbered_list_item(line) or is_bullet_list_item(line)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_numbered_list_item(line: str) -> bool:
     return re.match(r"\s*[0-9]+\.", line)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def numbered_list_item(line: str) -> str:
     indent, number, text = re.match(r"(\s*)([0-9])+\.\s+(.*)", line).groups()
     sanitized_text = string_to_tex(text)
@@ -305,12 +305,12 @@ def numbered_list_item(line: str) -> str:
     return list_line
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def is_bullet_list_item(line: str) -> bool:
     return re.match(r"\s*-", line)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def bullet_list_item(line: str) -> str:
     indent, text = re.match(r"(\s*)-\s+(.*)", line).groups()
     sanitized_text = string_to_tex(text)
@@ -329,26 +329,26 @@ def bullet_list_item(line: str) -> str:
     return list_line
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def line_depth(indent: str) -> int:
     return len(indent)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def total_depth() -> int:
     if not STATE.list_depth:
         return -1
     return sum(line_depth(i.depth) for i in STATE.list_depth)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def total_indent() -> str:
     if not STATE.list_depth:
         return ""
     return "".join([i.depth for i in STATE.list_depth])
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def cleanup():
     assert (
         not STATE.code_block
@@ -361,7 +361,7 @@ def cleanup():
     return "\n".join(lines)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def end_lists():
     lines = []
     while STATE.list_depth:
@@ -370,7 +370,7 @@ def end_lists():
     return lines
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def string_to_tex(unprocessed_text: str) -> str:
     logging.getLogger(__name__).debug("unprocessed_text %s", unprocessed_text)
     processed_text = ""
@@ -396,7 +396,7 @@ def string_to_tex(unprocessed_text: str) -> str:
     return processed_text
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_verbatim(text: str) -> Tuple[str, str]:
     processed_text = R"\verb`"
     verb_text, unprocessed_text = re.match(r"(.*?`)(.*)", text).groups()
@@ -404,7 +404,7 @@ def split_verbatim(text: str) -> Tuple[str, str]:
     return (processed_text, unprocessed_text)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_formatted(text: str) -> Tuple[str, str]:
     if text.startswith("*"):
         return split_bold(text)
@@ -433,7 +433,7 @@ def split_italics(text: str) -> Tuple[str, str]:
     return (processed_text, unprocessed_text)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_link(text: str) -> Tuple[str, str]:
     return (
         split_markdown_link(text)
@@ -443,7 +443,7 @@ def split_link(text: str) -> Tuple[str, str]:
     )
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_markdown_link(text: str) -> Tuple[str, str]:
     m = re.match(r"(.*?)\]\((.*?)\)(.*)", text)
     if not m:
@@ -454,7 +454,7 @@ def split_markdown_link(text: str) -> Tuple[str, str]:
     return (processed_text, unprocessed_text)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_document_link(text: str) -> Tuple[str, str]:
     m = re.match(r"\[(.+?)\]\](.*)", text)
     if not m:
@@ -474,7 +474,7 @@ def split_document_link(text: str) -> Tuple[str, str]:
     return (processed_text, unprocessed_text)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_paragraph_link(text: str) -> Tuple[str, str]:
     m = re.match(r"\[#\^([a-zA-Z0-9-]+)\|?(.+)\]\](.*)", text)
     if not m:
@@ -485,7 +485,7 @@ def split_paragraph_link(text: str) -> Tuple[str, str]:
     return (processed_text, unprocessed_text)
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def split_reference(text: str) -> Tuple[str, str]:
     m = re.match(r"([a-zA-Z0-9-]+)$", text)
     if not m:
@@ -494,11 +494,11 @@ def split_reference(text: str) -> Tuple[str, str]:
     return f"\\label{{{ref_text}}}", ""
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def file_label(file_path: Path) -> str:
     return f"\\label{{{file_ref_label(file_path)}}}"
 
 
-@pydantic.validate_arguments
+@pydantic.validate_call
 def file_ref_label(file_path: Path) -> str:
     return "file_" + file_path.name.replace(".", "_")

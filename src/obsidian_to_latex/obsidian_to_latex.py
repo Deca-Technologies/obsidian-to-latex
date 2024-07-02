@@ -24,7 +24,7 @@ from obsidian_to_latex import obsidian_path, process_markdown
     "--template",
     type=click.Path(path_type=Path, resolve_path=True),
 )
-@pydantic.validate_arguments
+@pydantic.validate_call
 def main(filename: Path, template: Optional[Path]):  # pragma: no cover
     colorama.init()
     colored_traceback.add_hook()
